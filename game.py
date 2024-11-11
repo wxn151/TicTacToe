@@ -27,7 +27,7 @@ class TicTacToe:
             while True:
 
                 # horizontal
-                while (prompter >= 2):
+                while (prompter <= 2):
                     line = self.board[prompter][0:3]
                     for n in line:
                         if (n == figure):
@@ -158,5 +158,5 @@ while True:
     if (plyAgain != ''):
         break
     else:
-        del(onArcade)
+        del onArcade
 
