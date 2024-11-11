@@ -1,2 +1,2 @@
 # TIC TAC TOE
-Already, is only using dictionaries and list into a python script. There is no external dependencies.
+A demostration how to abstract the tic tac toe game only with the terminal console.
