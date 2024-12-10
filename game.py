@@ -24,59 +24,34 @@ class TicTacToe:
         bias = 0
         prompter = 0
         if (len(self.rndr) < 6):
-            while True:
-
+            while (bias < 3 and prompter != 3):
                 # horizontal
-                while (prompter <= 2):
-                    line = self.board[prompter][0:3]
-                    for n in line:
-                        if (n == figure):
-                            bias+=1
-                    if (bias > 2):
-                        break;
-                    else:
-                        bias = 0
-                        prompter += 1
-
-
+                line = self.board[prompter][0:3]
+                for n in line:
+                    if (n == figure):
+                        bias+=1
+                bias = 0
                 # vertical
-                prompter = 2
-                while (prompter >= 0):
+                for n in self.board:
+                    if (n[prompter] == figure):
+                        bias += 1
+                bias = 0
+                prompter += 1
+
+            if (bias != 3):
+                prompter = 0
+                less = 1
+                #diagonal
+                while (bias < 3 and prompter >= 0):
                     for n in self.board:
                         if (n[prompter] == figure):
                             bias += 1
-                    if (bias > 2):
-                        score = figure
-                        break;
-                    else:
-                        bias = 0
-                        prompter -=1
-
-
-                #diagonal
-                prompter = 0
-                for n in self.board:
-                    if (n[prompter] == figure):
-                        bias += 1
-                    if (prompter<2):
-                        prompter += 1
-                if (bias > 2):
-                    break;
-                else:
+                        prompter += less
                     bias = 0
-                for n in self.board:
-                    if (n[prompter] == figure):
-                        bias += 1
-                    if (prompter > 0):
-                        prompter -= 1
-                if (bias > 2):
-                    break;
-                else:
-                    bias = 0
-                break;
-
-        if (bias > 2):
-            score = True
+                    less = -1
+                    prompter = 2
+            if (bias == 3):
+                score = True
         return score
 
     def load(self):
