@@ -1,7 +1,4 @@
 import numpy as np
-import random
-import os
-import copy
 
 # === Juego Tic Tac Toe ===
 class TicTacToe:
@@ -49,85 +46,58 @@ class TicTacToe:
                 return True
         return False
 
-# === Agente con ADN persistente ===
+# === Agente con Minimax ===
 class Agent:
-    def __init__(self, dna=None):
-        self.dna = np.random.rand(9) if dna is None else dna
-        self.fitness = 0
+    def __init__(self, letter):
+        self.letter = letter
 
     def get_move(self, board):
-        moves = [i for i in range(9) if board[i] == '-']
-        if not moves:
-            return None
-        ranked_moves = sorted(moves, key=lambda x: -self.dna[x])
-        return ranked_moves[0]
+        game = TicTacToe()
+        game.board = board.copy()
+        move = self.minimax(game, self.letter)['position']
+        return move
 
-    def mutate_from_loss(self, human_moves):
-        for move in human_moves:
-            self.dna[move] -= 0.1
-        self.dna += np.random.normal(0, 0.02, size=9)
-        self.dna = np.clip(self.dna, 0, 1)
+    def minimax(self, game, player):
+        max_player = self.letter
+        other_player = 'O' if player == 'X' else 'X'
 
-    def save(self, filename="ai_dna.npy"):
-        np.save(filename, self.dna)
+        # Caso terminal
+        if game.current_winner == other_player:
+            return {'position': None, 'score': 1 * (len(game.available_moves()) + 1) if other_player == max_player else -1 * (len(game.available_moves()) + 1)}
+        elif not game.empty_squares():
+            return {'position': None, 'score': 0}
 
-    @staticmethod
-    def load(filename="ai_dna.npy"):
-        if os.path.exists(filename):
-            dna = np.load(filename)
-            print("🧬 AI DNA loaded from file.")
-            return Agent(dna)
-        else:
-            print("⚙️ No saved DNA found. Training new AI...")
-            return None
+        best = {'position': None, 'score': -np.inf if player == max_player else np.inf}
 
-# === Evolución genética ===
-def play_game(agent1, agent2):
-    game = TicTacToe()
-    letter = 'X'
-    while game.empty_squares():
-        move = agent1.get_move(game.board) if letter == 'X' else agent2.get_move(game.board)
-        if move is not None and game.make_move(move, letter):
-            if game.current_winner:
-                return 1 if letter == 'X' else -1
-            letter = 'O' if letter == 'X' else 'X'
-    return 0
+        for possible_move in game.available_moves():
+            game.board[possible_move] = player
+            if game.winner(possible_move, player):
+                game.current_winner = player
+            sim_score = self.minimax(game, other_player)
 
-def evolve(population_size=50, generations=30, mutation_rate=0.1):
-    population = [Agent() for _ in range(population_size)]
-    for gen in range(generations):
-        for agent in population:
-            agent.fitness = 0
-            for _ in range(5):
-                opponent = random.choice(population)
-                result = play_game(agent, opponent)
-                agent.fitness += result
-        population.sort(key=lambda x: x.fitness, reverse=True)
-        print(f"Generation {gen+1} | Best fitness: {population[0].fitness}")
-        next_gen = population[:10]
-        while len(next_gen) < population_size:
-            p1, p2 = random.choices(next_gen[:10], k=2)
-            child_dna = crossover(p1.dna, p2.dna)
-            child_dna = mutate(child_dna, mutation_rate)
-            next_gen.append(Agent(child_dna))
-        population = next_gen
-    return population[0]
+            # deshacer
+            game.board[possible_move] = '-'
+            game.current_winner = None
+            sim_score['position'] = possible_move
 
-def crossover(dna1, dna2):
-    return np.array([random.choice([g1, g2]) for g1, g2 in zip(dna1, dna2)])
+            if player == max_player:
+                if sim_score['score'] > best['score']:
+                    best = sim_score
+            else:
+                if sim_score['score'] < best['score']:
+                    best = sim_score
 
-def mutate(dna, rate):
-    return np.array([g + np.random.randn()*0.1 if random.random() < rate else g for g in dna])
+        return best
 
-# === Juego contra humano con aprendizaje persistente ===
+# === Jugar contra humano ===
 def play_vs_human(ai_agent):
     game = TicTacToe()
     human_letter = input("Choose your letter (X goes first): ").upper()
     while human_letter not in ['X', 'O']:
         human_letter = input("Invalid. Choose X or O: ").upper()
     ai_letter = 'O' if human_letter == 'X' else 'X'
+    ai_agent.letter = ai_letter
     current_letter = 'X'
-    human_moves = []
 
     while game.empty_squares():
         print("\nCurrent board:")
@@ -141,7 +111,6 @@ def play_vs_human(ai_agent):
                     if move in game.available_moves():
                         valid = True
                         game.make_move(move, human_letter)
-                        human_moves.append(move)
                     else:
                         print("Invalid move.")
                 except:
@@ -155,29 +124,17 @@ def play_vs_human(ai_agent):
             game.print_board()
             winner = "You" if current_letter == human_letter else "AI"
             print(f"{winner} won the game!")
-            if winner == "You":
-                print("AI will learn from this loss...")
-                ai_agent.mutate_from_loss(human_moves)
-                ai_agent.save()
-            elif winner == "AI":
-                ai_agent.save()
             return
 
         current_letter = 'O' if current_letter == 'X' else 'X'
 
     game.print_board()
     print("It's a draw!")
-    ai_agent.save()
 
 # === Ejecutar juego ===
 if __name__ == "__main__":
-    ai_agent = Agent.load()
-    if ai_agent is None:
-        ai_agent = evolve()
-        ai_agent.save()
-        print("AI training complete and saved c[_].")
-
-    print("\n🎮 Let's play Tic Tac Toe!")
+    print("\n🎮 Let's play Tic Tac Toe with Minimax AI!")
+    ai_agent = Agent(letter='O')  # se asigna correctamente al iniciar el juego
     while True:
         play_vs_human(ai_agent)
         again = input("Play again? (y/n): ").lower()
